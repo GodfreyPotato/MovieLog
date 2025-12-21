@@ -2,7 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:movie_log/chart/barchart.dart';
-import 'package:movie_log/chart/piechart.dart';
+import 'package:movie_log/chart/piechartMostComment.dart';
+import 'package:movie_log/chart/piechartWatchedGenre.dart';
 import 'package:movie_log/helper/db_helper.dart';
 import 'package:movie_log/screens/addmoviescreen.dart';
 import 'package:movie_log/screens/moviedetailscreen.dart';
@@ -20,6 +21,15 @@ class _HomescreenState extends State<Homescreen> {
   String sortValue = 'Last Added';
   String pieChartValue = 'Most Comment';
   PageController controller = PageController(viewportFraction: 0.75);
+  late Future watchList;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    watchList = DbHelper.fetchMovies();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -31,8 +41,23 @@ class _HomescreenState extends State<Homescreen> {
         title: Image.asset('assets/images/mainlogo.png', width: 150),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
-            onPressed: () {},
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFC62828),
+            ),
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => Addmoviescreen()),
+              );
+
+              if (result == true) {
+                setState(() {
+                  chartRefreshKey++;
+                });
+              }
+            },
+
+            icon: const Icon(Icons.add, color: Colors.white),
           ),
         ],
       ),
@@ -117,7 +142,37 @@ class _HomescreenState extends State<Homescreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Expanded(flex: 3, child: PieChartSample3()),
+                Expanded(
+                  flex: 3,
+                  child: FutureBuilder(
+                    future: pieChartValue == 'Most Comment'
+                        ? DbHelper.fetchMovieWithMostComment()
+                        : DbHelper.fetchMostWatchedGenre(),
+                    builder: (context, asyncSnapshot) {
+                      if (asyncSnapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return Center(
+                          child: CircularProgressIndicator(
+                            color: Colors.redAccent,
+                          ),
+                        );
+                      }
+                      if (!asyncSnapshot.hasData ||
+                          asyncSnapshot.data!.isEmpty) {
+                        return Center(
+                          child: Text(
+                            "No recorded movie yet.",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        );
+                      }
+                      List movies = asyncSnapshot.data!;
+                      return pieChartValue == 'Most Comment'
+                          ? piechartMostComment(movies: movies)
+                          : PieChartWatchedGenre(movies: movies);
+                    },
+                  ),
+                ),
                 const SizedBox(width: 16),
                 Expanded(
                   flex: 1,
@@ -125,9 +180,45 @@ class _HomescreenState extends State<Homescreen> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       const SizedBox(height: 20),
-                      _buildStatCard("125", "Total Movies"),
+                      FutureBuilder(
+                        future: DbHelper.fetchMovieCount(),
+                        builder: (context, asyncSnapshot) {
+                          if (asyncSnapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.redAccent,
+                              ),
+                            );
+                          }
+                          if (!asyncSnapshot.hasData ||
+                              asyncSnapshot.data! == 0) {
+                            return _buildStatCard("0", "Total Movies");
+                          }
+                          int count = asyncSnapshot.data!;
+                          return _buildStatCard("$count", "Total Movies");
+                        },
+                      ),
                       const SizedBox(height: 12),
-                      _buildStatCard("48h", "Watch Time"),
+                      FutureBuilder(
+                        future: DbHelper.fetchFaveMovieCount(),
+                        builder: (context, asyncSnapshot) {
+                          if (asyncSnapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.redAccent,
+                              ),
+                            );
+                          }
+                          if (!asyncSnapshot.hasData ||
+                              asyncSnapshot.data! == 0) {
+                            return _buildStatCard("0", "Favorite Movies");
+                          }
+                          int count = asyncSnapshot.data!;
+                          return _buildStatCard("$count", "Favorite Movies");
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -174,7 +265,18 @@ class _HomescreenState extends State<Homescreen> {
                     DropdownMenuItem(value: 'Rate', child: Text('Rate')),
                   ],
                   onChanged: (value) {
-                    setState(() => sortValue = value!);
+                    setState(() {
+                      sortValue = value!;
+                      if (sortValue == 'Last Added') {
+                        watchList = DbHelper.fetchMovies();
+                      } else if (sortValue == 'Genre') {
+                        watchList = DbHelper.fetchMoviesByGenre();
+                      } else if (sortValue == 'Favorite') {
+                        watchList = DbHelper.fetchFavoriteMovies();
+                      } else if (sortValue == 'Rate') {
+                        watchList = DbHelper.fetchMoviesByRate();
+                      }
+                    });
                   },
                 ),
               ),
@@ -187,7 +289,7 @@ class _HomescreenState extends State<Homescreen> {
           SizedBox(
             height: 400,
             child: FutureBuilder(
-              future: DbHelper.fetchMovies(),
+              future: watchList,
               builder: (context, ss) {
                 if (ss.connectionState == ConnectionState.waiting) {
                   return Center(
@@ -239,6 +341,7 @@ class _HomescreenState extends State<Homescreen> {
                   );
                 }
                 List movies = ss.data!;
+
                 print("HERE ARE THE MOVIES $movies");
                 return PageView.builder(
                   controller: controller,
@@ -265,27 +368,6 @@ class _HomescreenState extends State<Homescreen> {
           ),
           const SizedBox(height: 32),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => Addmoviescreen()),
-          );
-
-          if (result == true) {
-            setState(() {
-              chartRefreshKey++;
-            });
-          }
-        },
-        backgroundColor: const Color(0xFFC62828),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          "Add Movie",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-        ),
-        elevation: 8,
       ),
     );
   }
@@ -503,28 +585,6 @@ class _HomescreenState extends State<Homescreen> {
                         ],
                       ),
                     ],
-                  ),
-                ),
-              ),
-
-              // Favorite Icon (Top Right)
-              Positioned(
-                top: 16,
-                right: 16,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    movie['is_favorite'] == 1
-                        ? Icons.favorite
-                        : Icons.favorite_border,
-                    color: movie['is_favorite'] == 1
-                        ? const Color(0xFFC62828)
-                        : Colors.white,
-                    size: 24,
                   ),
                 ),
               ),

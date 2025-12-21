@@ -3,7 +3,7 @@ import 'package:movie_log/screens/homescreen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(MaterialApp(home: MovieLogApp()));
+  runApp(MaterialApp(home: MovieLogApp(), debugShowCheckedModeBanner: false));
 }
 
 class MovieLogApp extends StatefulWidget {

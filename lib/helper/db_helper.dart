@@ -104,6 +104,28 @@ class DbHelper {
 ''');
   }
 
+  //fetch movie count
+  static Future<int> fetchMovieCount() async {
+    Database db = await openDB();
+    List movies = await db.rawQuery('''
+  SELECT COUNT(*) as movie_count from $table
+''');
+
+    return movies[0]['movie_count'];
+  }
+
+  //fetch favorite movies count
+  static Future<int> fetchFaveMovieCount() async {
+    Database db = await openDB();
+    List movies = await db.rawQuery('''
+  SELECT COUNT(*) as movie_count 
+  FROM movie
+  WHERE is_fave = 1
+''');
+    print('fave count here ${movies[0]['movie_count']}');
+    return movies[0]['movie_count'];
+  }
+
   //fetch genres
   static Future<List<Map>> fetchGenres() async {
     var db = await openDB();
@@ -126,6 +148,95 @@ class DbHelper {
     JOIN genre g ON m.genre_id = g.id
     GROUP BY m.id, m.title, m.image
     ORDER BY $colDate DESC
+  ''');
+  }
+
+  //fetch movie by genre
+  static Future<List<Map>> fetchMoviesByGenre() async {
+    var db = await openDB();
+    return await db.rawQuery('''
+    SELECT 
+      m.id,
+      m.title,
+      m.image,
+      g.genre_title AS genre,
+      GROUP_CONCAT(c.message, ' | ') AS messages,
+      IFNULL(AVG(c.rate), 0) AS avg_rate
+    FROM movie m
+    LEFT JOIN comment c ON c.movie_id = m.id
+    JOIN genre g ON m.genre_id = g.id
+    GROUP BY m.id, m.title, m.image, g.genre_title
+    ORDER BY g.genre_title ASC
+  ''');
+  }
+
+  //fetch favorite movies
+  static Future<List<Map>> fetchFavoriteMovies() async {
+    var db = await openDB();
+    return await db.rawQuery('''
+    SELECT 
+      m.id,
+      m.title,
+      m.image,
+      g.genre_title AS genre,
+      GROUP_CONCAT(c.message, ' | ') AS messages,
+      IFNULL(AVG(c.rate), 0) AS avg_rate
+    FROM movie m
+    LEFT JOIN comment c ON c.movie_id = m.id
+    JOIN genre g ON m.genre_id = g.id
+    WHERE m.is_fave == 1
+    GROUP BY m.id, m.title, m.image, g.genre_title
+    ORDER BY m.title ASC
+  ''');
+  }
+
+  // Fetch movies sorted by average rate
+  static Future<List<Map>> fetchMoviesByRate() async {
+    var db = await openDB();
+    return await db.rawQuery('''
+    SELECT 
+      m.id,
+      m.title,
+      m.image,
+      g.genre_title AS genre,
+      GROUP_CONCAT(c.message, ' | ') AS messages,
+      IFNULL(AVG(c.rate), 0) AS avg_rate
+    FROM movie m
+    LEFT JOIN comment c ON c.movie_id = m.id
+    JOIN genre g ON m.genre_id = g.id
+    GROUP BY m.id, m.title, m.image, g.genre_title
+    ORDER BY avg_rate DESC
+  ''');
+  }
+
+  //fetch movie title with comment count
+  static Future<List> fetchMovieWithMostComment() async {
+    Database db = await openDB();
+    return await db.rawQuery('''
+  SELECT
+    m.id,
+    m.$colTitle AS title,
+    COUNT(c.id) AS comment_count
+  FROM $table m
+  LEFT JOIN $table3 c ON c.$colFKMovie = m.id
+  GROUP BY m.id
+  ORDER BY comment_count DESC
+  LIMIT 4
+''');
+  }
+
+  static Future<List> fetchMostWatchedGenre() async {
+    Database db = await openDB();
+
+    return await db.rawQuery('''
+    SELECT 
+      g.$colGenreTitle AS genre_title,
+      COUNT(m.id) AS genre_count
+    FROM $table AS m
+    JOIN $table2 AS g ON m.$colFKGenre = g.id
+    GROUP BY g.id
+    ORDER BY genre_count DESC
+    LIMIT 4
   ''');
   }
 
@@ -196,6 +307,7 @@ class DbHelper {
       m.$colImgPath AS image,
       g.$colGenreTitle AS genre,
       m.$colDate AS dateCreated,
+      m.$colIsFave as is_fave,
       IFNULL(AVG(c.$colMovieRate), 0) AS avg_rate
     FROM $table m
     JOIN $table2 g ON g.id = m.$colFKGenre
@@ -251,6 +363,30 @@ class DbHelper {
       await db.delete(table3, where: 'id = ?', whereArgs: [id]);
     } catch (e) {
       print('error on delete comment $e');
+    }
+  }
+
+  //add/remove favorite
+  static Future<void> isFave(int id, int isFave) async {
+    try {
+      Database db = await openDB();
+      if (isFave == 1) {
+        await db.update(
+          table,
+          {'is_fave': 0},
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+      } else {
+        await db.update(
+          table,
+          {'is_fave': 1},
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+      }
+    } catch (e) {
+      print('error on is fave $e');
     }
   }
 }

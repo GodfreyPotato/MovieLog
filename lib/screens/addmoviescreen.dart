@@ -76,8 +76,8 @@ class _AddmoviescreenState extends State<Addmoviescreen> {
               backgroundColor: Color(0xFFC62828),
             ),
           );
+          return;
         }
-        return;
       } else {
         //this will trigger if selected genre exist in the dropdown
         await DbHelper.insertMovieGenreSpecified({

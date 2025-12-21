@@ -57,28 +57,39 @@ class _MoviedetailscreenState extends State<Moviedetailscreen> {
                     ),
                     child: IconButton(
                       icon: Icon(
-                        movie['is_favorite'] == 1
+                        movie['is_fave'] == 1
                             ? Icons.favorite
                             : Icons.favorite_border,
-                        color: movie['is_favorite'] == 1
+                        color: movie['is_fave'] == 1
                             ? const Color(0xFFC62828)
                             : Colors.white,
                       ),
-                      onPressed: () {
+                      onPressed: () async {
                         // Toggle favorite
-                      },
-                    ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.white),
-                      onPressed: () {
-                        // Edit movie
+                        await DbHelper.isFave(widget.id, movie['is_fave']);
+                        setState(() {});
+                        ScaffoldMessenger.of(context).clearSnackBars();
+                        if (movie['is_fave'] == 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: Colors.redAccent,
+                              content: Text(
+                                "Movie added to favories!",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: Colors.redAccent,
+                              content: Text(
+                                "Movie removed to favories!",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          );
+                        }
                       },
                     ),
                   ),
