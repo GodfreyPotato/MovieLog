@@ -11,6 +11,8 @@ class DbHelper {
   static const colTitle = "title";
   static const colImgPath = 'image';
   static const colFKGenre = 'genre_id';
+  static const colIsFave = 'is_fave';
+  static const colDate = 'dateCreated';
 
   //Genre Table
   static const table2 = 'genre';
@@ -27,8 +29,10 @@ class DbHelper {
         '''CREATE TABLE IF NOT EXISTS  $table(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     $colFKGenre INTEGER,
+    $colIsFave INTEGER NOT NULL DEFAULT 0,
     $colTitle VARCHAR(255),
     $colImgPath TEXT,
+    $colDate TEXT,
     FOREIGN KEY ($colFKGenre) REFERENCES $table2(id) ON DELETE CASCADE ON UPDATE NO ACTION
     )''';
 
@@ -80,6 +84,26 @@ class DbHelper {
     return db;
   }
 
+  //fetch highest rated movies
+  static Future<List> fetchHighestRatedMovies() async {
+    Database db = await openDB();
+
+    return await db.rawQuery('''
+  SELECT
+    m.id,
+    m.$colTitle AS title,
+    m.$colImgPath AS image,
+    g.$colGenreTitle AS genre,
+    IFNULL(AVG(c.$colMovieRate), 0) AS avg_rate
+  FROM $table m
+  JOIN $table2 g ON g.id = m.$colFKGenre
+  LEFT JOIN $table3 c ON c.$colFKMovie = m.id
+  GROUP BY m.id
+  ORDER BY avg_rate DESC
+  LIMIT 5
+''');
+  }
+
   //fetch genres
   static Future<List<Map>> fetchGenres() async {
     var db = await openDB();
@@ -95,17 +119,18 @@ class DbHelper {
       m.title,
       m.image,
       g.genre_title as genre,
+      GROUP_CONCAT(c.message, ' | ') AS messages,
       IFNULL(AVG(c.rate), 0) AS avg_rate
     FROM movie m
     LEFT JOIN comment c ON c.movie_id = m.id
     JOIN genre g ON m.genre_id = g.id
     GROUP BY m.id, m.title, m.image
-    ORDER BY avg_rate DESC
+    ORDER BY $colDate DESC
   ''');
   }
 
   //add new movie, selected specify in genre
-  static Future<void> insertMovie(Map movie) async {
+  static Future<int?> insertMovie(Map movie) async {
     //need sa movie: genre, title, img, message,rate
     try {
       var db = await openDB();
@@ -117,6 +142,34 @@ class DbHelper {
         colTitle: movie['title'],
         colImgPath: movie['img'],
         colFKGenre: genreId,
+        colIsFave: 0,
+        colDate: DateTime.now().toIso8601String(),
+      });
+
+      //then mag add ng msg with rate sa comment table
+      await db.insert(table3, {
+        colMovieComment: movie['message'],
+        colMovieRate: movie['rate'],
+        colFKMovie: movieId,
+      });
+      print('movie inserted');
+      return 1;
+    } catch (e) {
+      print('error on create movie $e');
+      return null;
+    }
+  }
+
+  static Future<void> insertMovieGenreSpecified(Map movie) async {
+    try {
+      var db = await openDB();
+      //since meron na id sa movie, pwede na sa colFKGenre
+      int movieId = await db.insert(table, {
+        colTitle: movie['title'],
+        colImgPath: movie['img'],
+        colFKGenre: movie['genreId'],
+        colIsFave: 0,
+        colDate: DateTime.now().toIso8601String(),
       });
 
       //then mag add ng msg with rate sa comment table
@@ -128,6 +181,76 @@ class DbHelper {
       print('movie inserted');
     } catch (e) {
       print('error on create movie $e');
+    }
+  }
+
+  //fetches the title, image, genre and avg_rate
+  static Future<Map?> fetchMovieDetail(int id) async {
+    try {
+      Database db = await openDB();
+      final result = await db.rawQuery(
+        '''
+    SELECT
+      m.id,
+      m.$colTitle AS title,
+      m.$colImgPath AS image,
+      g.$colGenreTitle AS genre,
+      m.$colDate AS dateCreated,
+      IFNULL(AVG(c.$colMovieRate), 0) AS avg_rate
+    FROM $table m
+    JOIN $table2 g ON g.id = m.$colFKGenre
+    LEFT JOIN $table3 c ON c.$colFKMovie = m.id
+    WHERE m.id = ?
+    GROUP BY m.id
+    LIMIT 1
+  ''',
+        [id],
+      );
+
+      return result.isNotEmpty ? result.first : null;
+    } catch (e) {
+      print('error on fetch movie');
+    }
+  }
+
+  static Future<List?> fetchMovieComments(int id) async {
+    try {
+      Database db = await openDB();
+      return await db.query(table3, where: '$colFKMovie = ?', whereArgs: [id]);
+    } catch (e) {
+      print('error on fetch movie comments');
+    }
+  }
+
+  static Future<void> updateComment(Map comment) async {
+    Database db = await openDB();
+    await db.update(
+      table3,
+      {'message': comment['message'], 'rate': comment['rate']},
+      where: 'id = ?',
+      whereArgs: [comment['id']],
+    );
+  }
+
+  static Future<void> addComment(int id, Map comment) async {
+    try {
+      Database db = await openDB();
+      await db.insert(table3, {
+        colFKMovie: id,
+        'message': comment['message'],
+        'rate': comment['rate'],
+      });
+    } catch (e) {
+      print('error on add comment $e');
+    }
+  }
+
+  static Future<void> deleteComment(int id) async {
+    try {
+      Database db = await openDB();
+      await db.delete(table3, where: 'id = ?', whereArgs: [id]);
+    } catch (e) {
+      print('error on delete comment $e');
     }
   }
 }

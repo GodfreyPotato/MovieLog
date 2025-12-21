@@ -5,6 +5,7 @@ import 'package:movie_log/chart/barchart.dart';
 import 'package:movie_log/chart/piechart.dart';
 import 'package:movie_log/helper/db_helper.dart';
 import 'package:movie_log/screens/addmoviescreen.dart';
+import 'package:movie_log/screens/moviedetailscreen.dart';
 import 'package:movie_log/util/format.dart';
 
 class Homescreen extends StatefulWidget {
@@ -15,7 +16,8 @@ class Homescreen extends StatefulWidget {
 }
 
 class _HomescreenState extends State<Homescreen> {
-  String sortValue = 'Last Update';
+  int chartRefreshKey = 0;
+  String sortValue = 'Last Added';
   String pieChartValue = 'Most Comment';
   PageController controller = PageController(viewportFraction: 0.75);
   @override
@@ -25,14 +27,7 @@ class _HomescreenState extends State<Homescreen> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: const Color(0xFF1E1E1E),
-        // title: const Text(
-        //   "Movie Log",
-        //   style: TextStyle(
-        //     fontSize: 24,
-        //     fontWeight: FontWeight.bold,
-        //     color: Colors.white,
-        //   ),
-        // ),
+
         title: Image.asset('assets/images/mainlogo.png', width: 150),
         actions: [
           IconButton(
@@ -61,8 +56,8 @@ class _HomescreenState extends State<Homescreen> {
                 ),
               ],
             ),
-            padding: const EdgeInsets.all(20),
-            child: BarChartSample3(),
+            padding: const EdgeInsets.only(top: 50, left: 20, right: 20),
+            child: BarChartSample3(key: ValueKey(chartRefreshKey)),
           ),
 
           const SizedBox(height: 40),
@@ -168,8 +163,8 @@ class _HomescreenState extends State<Homescreen> {
                   style: const TextStyle(color: Colors.white, fontSize: 14),
                   items: const [
                     DropdownMenuItem(
-                      value: 'Last Update',
-                      child: Text('Last Update'),
+                      value: 'Last Added',
+                      child: Text('Last Added'),
                     ),
                     DropdownMenuItem(value: 'Genre', child: Text('Genre')),
                     DropdownMenuItem(
@@ -244,6 +239,7 @@ class _HomescreenState extends State<Homescreen> {
                   );
                 }
                 List movies = ss.data!;
+                print("HERE ARE THE MOVIES $movies");
                 return PageView.builder(
                   controller: controller,
                   itemCount: movies.length,
@@ -278,7 +274,9 @@ class _HomescreenState extends State<Homescreen> {
           );
 
           if (result == true) {
-            setState(() {});
+            setState(() {
+              chartRefreshKey++;
+            });
           }
         },
         backgroundColor: const Color(0xFFC62828),
@@ -352,169 +350,186 @@ class _HomescreenState extends State<Homescreen> {
   }
 
   Widget _buildMovieCard(Map movie) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.5),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+    return GestureDetector(
+      onTap: () async {
+        final result = await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => Moviedetailscreen(id: movie['id']),
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          children: [
-            // Movie Poster Image
-            Positioned.fill(
-              child: Image.file(File(movie['image']), fit: BoxFit.cover),
-            ),
+        );
 
-            // Gradient Overlay
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.3),
-                      Colors.black.withOpacity(0.9),
-                    ],
-                    stops: const [0.4, 0.7, 1.0],
+        if (result) {
+          setState(() {
+            chartRefreshKey++;
+          });
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            children: [
+              // Movie Poster Image
+              Positioned.fill(
+                child: Image.file(File(movie['image']), fit: BoxFit.cover),
+              ),
+
+              // Gradient Overlay
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.3),
+                        Colors.black.withOpacity(0.9),
+                      ],
+                      stops: const [0.4, 0.7, 1.0],
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            // Movie Info at Bottom
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Title
-                    Text(
-                      movie['title'],
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Genre
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFC62828).withOpacity(0.8),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        titleCase(movie['genre']),
+              // Movie Info at Bottom
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Title
+                      Text(
+                        movie['title'],
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Genre
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFC62828).withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          titleCase(movie['genre']),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
+                      const SizedBox(height: 12),
 
-                    // Rating and Additional Info
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Rating
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E1E1E).withOpacity(0.8),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: const Color(0xFFFFA726),
-                              width: 1.5,
+                      // Rating and Additional Info
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Rating
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E1E1E).withOpacity(0.8),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFFFFA726),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.star,
+                                  color: Color(0xFFFFA726),
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  ((movie['avg_rate']) as num).toStringAsFixed(
+                                    1,
+                                  ),
+                                  style: const TextStyle(
+                                    color: Color(0xFFFFA726),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Text(
+                                  " / 5",
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.star,
-                                color: Color(0xFFFFA726),
-                                size: 20,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                ((movie['avg_rate']) as num).toStringAsFixed(1),
-                                style: const TextStyle(
-                                  color: Color(0xFFFFA726),
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const Text(
-                                " / 5",
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
 
-                        _buildIconButton(Icons.info_outline, () {
-                          // Handle view details
-                          _showMovieDetails(movie);
-                        }),
-                      ],
-                    ),
-                  ],
+                          _buildIconButton(Icons.info_outline, () {
+                            // Handle view details
+                            _showMovieDetails(movie);
+                          }),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            // Favorite Icon (Top Right)
-            Positioned(
-              top: 16,
-              right: 16,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  movie['is_favorite'] == 1
-                      ? Icons.favorite
-                      : Icons.favorite_border,
-                  color: movie['is_favorite'] == 1
-                      ? const Color(0xFFC62828)
-                      : Colors.white,
-                  size: 24,
+              // Favorite Icon (Top Right)
+              Positioned(
+                top: 16,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    movie['is_favorite'] == 1
+                        ? Icons.favorite
+                        : Icons.favorite_border,
+                    color: movie['is_favorite'] == 1
+                        ? const Color(0xFFC62828)
+                        : Colors.white,
+                    size: 24,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -612,7 +627,7 @@ class _HomescreenState extends State<Homescreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                movie['comment'] ?? 'No comment available',
+                movie['messages'] ?? 'No comment available',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.8),
                   fontSize: 14,

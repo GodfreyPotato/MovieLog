@@ -1,3 +1,4 @@
+import 'dart:ffi';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -60,18 +61,28 @@ class _AddmoviescreenState extends State<Addmoviescreen> {
 
       //selected is ung hindi existing genre  #genre, title, img, message,rate
       if (_selectedGenre == 'Other') {
-        DbHelper.insertMovie({
+        int? okay = await DbHelper.insertMovie({
           'img': savedFile.path,
           'genre': _customGenreController.text.toLowerCase().trim(),
           'title': _titleController.text,
           'message': _commentController.text,
           'rate': _rating,
         });
+        //if nag error sa pag insert sa new genre, mag cacause ng error
+        if (okay == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('New genre should be unique from other genre.'),
+              backgroundColor: Color(0xFFC62828),
+            ),
+          );
+        }
+        return;
       } else {
         //this will trigger if selected genre exist in the dropdown
-        DbHelper.insertMovie({
+        await DbHelper.insertMovieGenreSpecified({
           'img': savedFile.path,
-          'genre': _customGenreController.text.toLowerCase().trim(),
+          'genreId': int.parse(_selectedGenre!),
           'title': _titleController.text,
           'message': _commentController.text,
           'rate': _rating,
