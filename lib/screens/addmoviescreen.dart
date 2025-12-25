@@ -45,6 +45,16 @@ class _AddmoviescreenState extends State<Addmoviescreen> {
       );
       return;
     }
+    //check if there's a selected genre, enter if not selected
+    if (_selectedGenre == null && _customGenreController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Add a genre!'),
+          backgroundColor: Color(0xFFC62828),
+        ),
+      );
+      return;
+    }
 
     if (_formKey.currentState!.validate()) {
       // Process the form data

@@ -30,6 +30,11 @@ class _HomescreenState extends State<Homescreen> {
     watchList = DbHelper.fetchMovies();
   }
 
+  void loadWatchList() async {
+    watchList = DbHelper.fetchMovies();
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,6 +59,7 @@ class _HomescreenState extends State<Homescreen> {
                 setState(() {
                   chartRefreshKey++;
                 });
+                loadWatchList();
               }
             },
 
