@@ -74,7 +74,7 @@ class _MoviedetailscreenState extends State<Moviedetailscreen> {
                             SnackBar(
                               backgroundColor: Colors.redAccent,
                               content: Text(
-                                "Movie added to favories!",
+                                "Movie added to favorites!",
                                 style: TextStyle(color: Colors.white),
                               ),
                             ),
@@ -84,7 +84,7 @@ class _MoviedetailscreenState extends State<Moviedetailscreen> {
                             SnackBar(
                               backgroundColor: Colors.redAccent,
                               content: Text(
-                                "Movie removed to favories!",
+                                "Movie removed to favorites!",
                                 style: TextStyle(color: Colors.white),
                               ),
                             ),

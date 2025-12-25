@@ -244,19 +244,19 @@ class DbHelper {
   static Future<int?> insertMovie(Map movie) async {
     //need sa movie: genre, title, img, message,rate
     try {
-      var db = await openDB();
+      var db = await openDB();//open database
 
       //insert the genre first and then get the id
-      int genreId = await db.insert(table2, {colGenreTitle: movie['genre']});
+      int genreId = await db.insert(table2, {colGenreTitle: movie['genre']});//create new genre row, 
       //since meron na id, pwede na sa colFKGenre
-      int movieId = await db.insert(table, {
-        colTitle: movie['title'],
-        colImgPath: movie['img'],
-        colFKGenre: genreId,
-        colIsFave: 0,
-        colDate: DateTime.now().toIso8601String(),
+      int movieId = await db.insert(table, { //pasok nalng ung genreId sa movie, 
+        colTitle: movie['title'],//title
+        colImgPath: movie['img'],//movie image path
+        colFKGenre: genreId,//dto, need ang genreId kasi ung movie na table ay may genre na foreign key
+        colIsFave: 0,//ilagay lng na zero as default kasi 0 means hindi mo siya gusto/favorite
+        colDate: DateTime.now().toIso8601String(),//gagawa ka ng date na string 
       });
-
+    //after create movie, meron ka na movie id para un ung ilalagay mo sa comment table kasi ung comment table ay may foreign key ng movie
       //then mag add ng msg with rate sa comment table
       await db.insert(table3, {
         colMovieComment: movie['message'],

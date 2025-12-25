@@ -61,17 +61,24 @@ class _AddmoviescreenState extends State<Addmoviescreen> {
 
       //lipat image sa ibang storage
       // Get app directory
-      final appDir = await getApplicationDocumentsDirectory();
+      final appDir =
+          await getApplicationDocumentsDirectory(); //kukunin nya directory ng app
 
       // Create a stable filename
-      final fileName = file!.path.split('/').last;
+      final fileName = file!.path
+          .split('/')
+          .last; //kukunin nya filename nung image na inupload
 
       // Copy the file to app directory
-      final savedFile = await file!.copy('${appDir.path}/$fileName');
+      final savedFile = await file!.copy(
+        '${appDir.path}/$fileName',
+      ); //final image na isesave sa app
 
       //selected is ung hindi existing genre  #genre, title, img, message,rate
       if (_selectedGenre == 'Other') {
+        //dto gagawa siya ng bagong row sa genre table
         int? okay = await DbHelper.insertMovie({
+          //map ito na gagamitin mo sa dbhelper
           'img': savedFile.path,
           'genre': _customGenreController.text.toLowerCase().trim(),
           'title': _titleController.text,
@@ -91,6 +98,7 @@ class _AddmoviescreenState extends State<Addmoviescreen> {
       } else {
         //this will trigger if selected genre exist in the dropdown
         await DbHelper.insertMovieGenreSpecified({
+          //map ito na gagamitin mo sa dbhelper
           'img': savedFile.path,
           'genreId': int.parse(_selectedGenre!),
           'title': _titleController.text,
@@ -106,7 +114,7 @@ class _AddmoviescreenState extends State<Addmoviescreen> {
       );
       // Navigate back or clear form
     }
-
+    //ito ung true na makikita mo or i babalik mo sa homescreen.dart
     Navigator.pop(context, true);
   }
 

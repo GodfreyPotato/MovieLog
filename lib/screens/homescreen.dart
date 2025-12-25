@@ -31,7 +31,7 @@ class _HomescreenState extends State<Homescreen> {
   }
 
   void loadWatchList() async {
-    watchList = DbHelper.fetchMovies();
+    watchList = DbHelper.fetchMovies(); //fetch nya ung last update
     setState(() {});
   }
 
@@ -45,20 +45,24 @@ class _HomescreenState extends State<Homescreen> {
 
         title: Image.asset('assets/images/mainlogo.png', width: 150),
         actions: [
+          //dto ka mag aadd ng movie
           IconButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFC62828),
             ),
             onPressed: () async {
+              //mag aantay ka ng result,
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => Addmoviescreen()),
               );
-
+              //ngayon after mo ma pop sa addmovie screen, naka return na siya ng value, value nya is true
               if (result == true) {
                 setState(() {
+                  //itong chart refresh key is para sa mga chart para mag load sila
                   chartRefreshKey++;
                 });
+                //meron din dto ung load watch list
                 loadWatchList();
               }
             },
